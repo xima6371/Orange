@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    tools:context=".activity.MainActivity">
 
     <android.support.design.widget.AppBarLayout
         android:id="@+id/appbar_layout"
@@ -39,7 +39,7 @@
                     android:id="@+id/tv_title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/event"
+                    android:text="@string/title"
                     android:textColor="@color/colorWhite"
                     android:textSize="24sp"
                     android:textStyle="bold" />
@@ -78,7 +78,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:gravity="center"
-                android:text="毕业已经365天了"
+                android:text="@string/event"
                 android:textColor="@color/colorWhite"
                 android:textSize="24sp"
                 android:textStyle="bold"
