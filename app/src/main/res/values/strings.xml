@@ -3,8 +3,16 @@
     <string name="title">毕业</string>
     <string name="event">毕业已经365天了</string>
     <string name="start_time">2018-04-01</string>
-    
-    
-    <string name="transitionName_pic">iv_picture</string>
+
+    <string name="already">已经</string>
+    <string name="transitionName_pic">image</string>
+    <string name="event_hint">开始记录:\n要纪念的某日子,某人的生日,某件即将到来的事情…\n记得选择类型噢~</string>
+    <string name="event_type">类型</string>
+    <string name="anniversary">纪念日</string>
+    <string name="birthday">生日</string>
+    <string name="countdown">倒计时</string>
+    <string name="time">日期</string>
+
+
 
 </resources>

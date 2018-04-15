@@ -1,26 +1,38 @@
 package com.xima.net.orange.bean;
 
-import android.content.Context;
-
 import com.google.gson.Gson;
+
+import java.util.Date;
 
 /**
  * *                 (c) Copyright 2018/4/5 by xima
  * *                          All Rights Reserved
  */
 public class OrangeEvent {
-    private Context mContext;
+    public static final int TYPE_ANNIVERSARY = 2000;
+    public static final int TYPE_BIRTHDAY = 2001;
+    public static final int TYPE_COUNTDOWN = 2002;
+
+    private String mTitle;
     private int mType;
     private String mPicturePath;
     private String mStartTime;
-    private boolean mIsFavor;
+    private Date mDate;
+    private boolean mIsTop;
 
-    public OrangeEvent(Context context, int type, String picturePath, String startTime, boolean isFavor) {
-        mContext = context;
+    public OrangeEvent(String title, int type, String picturePath, String startTime, boolean isTop) {
+        mTitle = title;
         mType = type;
         mPicturePath = picturePath;
         mStartTime = startTime;
-        mIsFavor = isFavor;
+        mIsTop = isTop;
+    }
+
+    public OrangeEvent(String title, int type, String picturePath, boolean isTop) {
+        mTitle = title;
+        mType = type;
+        mPicturePath = picturePath;
+        mIsTop = isTop;
     }
 
     @Override
@@ -30,12 +42,12 @@ public class OrangeEvent {
         return gson.toJson(this);
     }
 
-    public Context getContext() {
-        return mContext;
+    public String getTitle() {
+        return mTitle;
     }
 
-    public void setContext(Context context) {
-        mContext = context;
+    public void setTitle(String title) {
+        mTitle = title;
     }
 
     public int getType() {
@@ -62,11 +74,20 @@ public class OrangeEvent {
         mStartTime = startTime;
     }
 
-    public boolean isFavor() {
-        return mIsFavor;
+
+    public Date getDate() {
+        return mDate;
     }
 
-    public void setFavor(boolean favor) {
-        mIsFavor = favor;
+    public void setDate(Date date) {
+        mDate = date;
+    }
+
+    public boolean isTop() {
+        return mIsTop;
+    }
+
+    public void setTop(boolean top) {
+        mIsTop = top;
     }
 }

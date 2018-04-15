@@ -14,7 +14,6 @@
         android:layout_height="match_parent"
         android:scaleType="centerCrop"
         android:src="@drawable/default_bg"
-        android:transitionName="@string/transitionName_pic"
         tools:targetApi="lollipop" />
 
     <View
@@ -28,6 +27,7 @@
         android:layout_width="96dp"
         android:layout_height="128dp"
         android:scaleType="centerCrop"
+        android:transitionName="@string/transitionName_pic"
         android:src="@drawable/default_bg" />
 
     <LinearLayout
