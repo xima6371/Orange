@@ -3,9 +3,9 @@ package com.xima.net.orange.activity;
 import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.os.Build;
+import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
@@ -31,7 +31,6 @@ import com.xima.net.orange.utils.SharedPreferencesUtils;
 import com.xima.net.orange.utils.ToastUtils;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
@@ -112,24 +111,15 @@ public class EventDetailActivity extends AppCompatActivity implements View.OnCli
         eventAction = intent.getStringExtra(EVENT_ACTION);
         eventPosition = intent.getIntExtra(EVENT_POSITION, -1000);
 
-        String eventJson = SharedPreferencesUtils.getStringFromSP(getApplicationContext(), SharedPreferencesUtils.KEY_EVENTS, "");
-        mEvents = new Gson().fromJson(eventJson, new TypeToken<List<OrangeEvent>>() {
-        }.getType());
+        mEvents = SharedPreferencesUtils.getListFromSp(this, SharedPreferencesUtils.KEY_EVENTS, "");
 
         switch (eventAction) {
             case EVENT_ACTION_ADD:
-
                 eventPhotoUri = intent.getStringExtra(PHOTO_URI);
-
-                int dateMsg[] = DateUtils.getDayMonthYear(new Date());
-                eventYear = dateMsg[0];
-                eventMonth = dateMsg[1];
-                eventDay = dateMsg[2];
-
+                Log.i(DEBUG_TAG, "initData: " + eventPhotoUri);
                 break;
 
             case EVENT_ACTION_MODIFY:
-
                 mTvTitle.setText("修改事件");
                 mIbDelete.setVisibility(View.VISIBLE);
 
@@ -142,6 +132,12 @@ public class EventDetailActivity extends AppCompatActivity implements View.OnCli
                 eventIsTop = orangeEvent.isTop();
                 eventTime = orangeEvent.getStartTime();
                 eventTitle = orangeEvent.getTitle();
+
+                int[] day = DateUtils.getYearMonthDay(orangeEvent.getDate());
+                eventYear = day[0];
+                eventMonth = day[1];
+                eventDay = day[2];
+                Log.i(DEBUG_TAG, "initData: " + eventMonth);
 
                 mSwitchTop.setChecked(eventIsTop);
                 mTvEventDate.setText(eventTime);
@@ -232,7 +228,7 @@ public class EventDetailActivity extends AppCompatActivity implements View.OnCli
 
             case R.id.ll_date:
                 //获取当前时间的年月日
-                int date[] = DateUtils.getDayMonthYear(new Date());
+                int date[] = DateUtils.getYearMonthDay(new Date());
                 final DatePickerDialog datePickerDialog = new DatePickerDialog(this, R.style.AppTheme, new DatePickerDialog.OnDateSetListener() {
                     @Override
                     public void onDateSet(DatePicker view, int year, int month, int dayOfMonth) {
@@ -264,12 +260,12 @@ public class EventDetailActivity extends AppCompatActivity implements View.OnCli
 
     private void saveEvent() {
 
-        eventTime = eventYear + "-" + eventMonth + "-" + eventDay;
-        Log.i(DEBUG_TAG, "saveEvent: " + eventTime);
         eventTitle = mEtEventTitle.getText().toString();
 
         if (!checkEventIsEmpty()) {
 
+            eventTime = eventYear + "-" + eventMonth + "-" + eventDay;
+            Log.i(DEBUG_TAG, "saveEvent: " + eventMonth);
             switch (eventAction) {
                 case EVENT_ACTION_ADD:
 
@@ -278,7 +274,7 @@ public class EventDetailActivity extends AppCompatActivity implements View.OnCli
 
                     OrangeEvent orangeEvent = new OrangeEvent(eventTitle, eventType, eventPhotoUri, eventIsTop);
                     orangeEvent.setStartTime(eventTime);
-                    orangeEvent.setDate(DateUtils.getDate(eventYear, eventMonth, eventDay));
+                    orangeEvent.setDate(DateUtils.getDate(eventYear, eventMonth , eventDay));
                     mEvents.add(orangeEvent);
 
                     break;
@@ -291,6 +287,7 @@ public class EventDetailActivity extends AppCompatActivity implements View.OnCli
                         e.setTitle(eventTitle);
                         e.setType(eventType);
                         e.setStartTime(eventTime);
+                        Log.i(DEBUG_TAG, "saveEvent: " + (eventMonth));
                         e.setDate(DateUtils.getDate(eventYear, eventMonth, eventDay));
                         e.setTop(eventIsTop);
                     }

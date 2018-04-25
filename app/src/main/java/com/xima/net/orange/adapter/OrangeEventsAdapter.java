@@ -1,21 +1,17 @@
 package com.xima.net.orange.adapter;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityOptions;
 import android.content.Context;
 import android.content.Intent;
-
 import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.Switch;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
@@ -23,16 +19,13 @@ import com.bumptech.glide.request.RequestOptions;
 import com.xima.net.orange.R;
 import com.xima.net.orange.activity.EventDetailActivity;
 import com.xima.net.orange.bean.OrangeEvent;
-import com.xima.net.orange.utils.DateUtils;
 import com.xima.net.orange.utils.SwitchUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.xima.net.orange.activity.EventDetailActivity.EVENT_ACTION;
 import static com.xima.net.orange.activity.EventDetailActivity.EVENT_ACTION_MODIFY;
-import static com.xima.net.orange.bean.OrangeEvent.TYPE_ANNIVERSARY;
-import static com.xima.net.orange.bean.OrangeEvent.TYPE_BIRTHDAY;
-import static com.xima.net.orange.bean.OrangeEvent.TYPE_COUNTDOWN;
 
 /**
  * *                 (c) Copyright 2018/4/5 by xima
@@ -46,31 +39,18 @@ public class OrangeEventsAdapter extends RecyclerView.Adapter<OrangeEventsAdapte
     public static final String EVENT_JSON = "event_json";
     public static final String EVENT_POSITION = "event_position";
 
-    public OrangeEventsAdapter(Context context, List<OrangeEvent> events) {
+    public OrangeEventsAdapter(Context context) {
         mContext = context;
-        mEvents = events;
     }
 
     public void setEvents(List<OrangeEvent> events) {
+        if (events == null)
+            events = new ArrayList<>();
         mEvents = events;
     }
 
     public List<OrangeEvent> getEvents() {
         return mEvents;
-    }
-
-    @NonNull
-    @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View itemVIew = LayoutInflater.from(mContext).inflate(R.layout.recycleview_item, parent, false);
-
-        return new ViewHolder(itemVIew);
-    }
-
-    @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, final int position) {
-        final OrangeEvent event = mEvents.get(position);
-        initData(holder, event,position);
     }
 
     private void initData(@NonNull final ViewHolder holder, final OrangeEvent event, final int position) {
@@ -94,14 +74,29 @@ public class OrangeEventsAdapter extends RecyclerView.Adapter<OrangeEventsAdapte
                 Intent intent = new Intent(mContext, EventDetailActivity.class);
                 intent.putExtra(EVENT_JSON, event.toString());
                 intent.putExtra(EVENT_ACTION, EVENT_ACTION_MODIFY);
-                intent.putExtra(EVENT_POSITION,position);
+                intent.putExtra(EVENT_POSITION, position);
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    mContext.startActivity(intent, ActivityOptions.makeSceneTransitionAnimation((Activity) mContext, holder.mIvPic,"image").toBundle());
-                }else {
+                    mContext.startActivity(intent, ActivityOptions.makeSceneTransitionAnimation((Activity) mContext, holder.mIvPic, "image").toBundle());
+                } else {
                     mContext.startActivity(intent);
                 }
             }
         });
+    }
+
+
+    @NonNull
+    @Override
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View itemVIew = LayoutInflater.from(mContext).inflate(R.layout.recycleview_item, parent, false);
+
+        return new ViewHolder(itemVIew);
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull ViewHolder holder, final int position) {
+        final OrangeEvent event = mEvents.get(position);
+        initData(holder, event, position);
     }
 
     @Override

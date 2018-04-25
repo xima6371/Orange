@@ -74,7 +74,6 @@ public class OrangeEvent {
         mStartTime = startTime;
     }
 
-
     public Date getDate() {
         return mDate;
     }

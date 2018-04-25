@@ -9,14 +9,15 @@
     <android.support.design.widget.AppBarLayout
         android:id="@+id/appbar_layout"
         android:layout_width="match_parent"
-        android:layout_height="240dp">
+        android:layout_height="250dp">
 
         <android.support.design.widget.CollapsingToolbarLayout
             android:id="@+id/collapsing_tl"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             app:contentScrim="@color/colorTransparent"
-            app:layout_scrollFlags="exitUntilCollapsed|scroll">
+            app:layout_scrollFlags="scroll|exitUntilCollapsed">
+
             <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent">
@@ -33,7 +34,7 @@
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:alpha="0.35"
+                    android:alpha="0.25"
                     android:background="@color/colorWhite" />
 
             </FrameLayout>
@@ -48,6 +49,7 @@
 
                 <TextView
                     android:id="@+id/tv_title"
+                    android:text="title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textSize="24sp"
@@ -55,6 +57,7 @@
 
                 <TextView
                     android:id="@+id/tv_days"
+                    android:text="day"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textSize="36sp" />
@@ -64,7 +67,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
-                    android:text="@string/start_time" />
+                    android:text="time" />
 
 
             </LinearLayout>
@@ -75,7 +78,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:gravity="center"
-                android:text="@string/event"
+                android:text="title+time"
                 android:textSize="24sp"
                 android:textStyle="bold"
                 android:layout_marginBottom="6dp"
@@ -85,7 +88,6 @@
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="64dp"
-                android:background="#00000000"
                 app:layout_collapseMode="pin" />
 
         </android.support.design.widget.CollapsingToolbarLayout>
@@ -98,7 +100,6 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="24dp"
         android:src="@drawable/add"
-        app:fabSize="mini"
         app:backgroundTint="@color/colorPrimary"
         app:layout_anchor="@+id/appbar_layout"
         app:layout_anchorGravity="end|bottom" />

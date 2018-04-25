@@ -82,26 +82,17 @@ public class MainActivity extends AppCompatActivity {
         initEvent();
     }
 
-    private void setBarTransparent() {
-        this.supportRequestWindowFeature(Window.FEATURE_NO_TITLE);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            Window window = this.getWindow();
-            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-            window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                    | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
-            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-            window.setStatusBarColor(this.getResources().getColor(R.color.colorTransparent, null));
-        }
-    }
-
     @Override
     protected void onRestart() {
         super.onRestart();
+        resetData();
+    }
+
+    private void resetData() {
         initData();
         mAdapter.setEvents(mEvents);
         mAdapter.notifyDataSetChanged();
     }
-
 
     private void initView() {
         mFabAdd = findViewById(R.id.fab_add);
@@ -120,11 +111,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void initData() {
 
-        mEvents = getEventList();
+        mEvents = SharedPreferencesUtils.getListFromSp(this,SharedPreferencesUtils.KEY_EVENTS,"");
 
         if (mEvents == null || mEvents.size() == 0) {
             topEventTips("快来添加你的事件吧");
-            mEvents = new ArrayList<>();
         } else {
 
             for (OrangeEvent e : mEvents)
@@ -134,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
 
             if (topEvent != null) {
                 //设置不同大小的text 比如1000天  1000是48sp,天是24sp;
-                int days = DateUtils.getIntervals(topEvent.getDate());
+                int days = SwitchUtils.getGap(topEvent);
                 String dayText = days + " 天";
                 AbsoluteSizeSpan sizeSpan = new AbsoluteSizeSpan(36);
                 SpannableStringBuilder spannableStringBuilder = new SpannableStringBuilder(dayText);
@@ -149,7 +139,6 @@ public class MainActivity extends AppCompatActivity {
                 mTvTitle.setText(topEvent.getTitle());
                 mTvStartTime.setText(topEvent.getStartTime());
 
-
                 mTvStartTime.setVisibility(View.VISIBLE);
                 mTvDays.setVisibility(View.VISIBLE);
             } else {
@@ -158,16 +147,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private List<OrangeEvent> getEventList() {
-        String eventJson = SharedPreferencesUtils.getStringFromSP(getApplicationContext(), SharedPreferencesUtils.KEY_EVENTS, "");
-        return new Gson().fromJson(eventJson, new TypeToken<List<OrangeEvent>>() {
-        }.getType());
-    }
-
     private void initEvent() {
 
         mLayoutManager = new LinearLayoutManager(this);
-        mAdapter = new OrangeEventsAdapter(this, mEvents);
+        mAdapter = new OrangeEventsAdapter(this);
+        mAdapter.setEvents(mEvents);
         mRvEvent.setLayoutManager(mLayoutManager);
         mRvEvent.setAdapter(mAdapter);
 
@@ -203,6 +187,17 @@ public class MainActivity extends AppCompatActivity {
         mTvDays.setVisibility(View.GONE);
     }
 
+    private void setBarTransparent() {
+        this.supportRequestWindowFeature(Window.FEATURE_NO_TITLE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Window window = this.getWindow();
+            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+            window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            window.setStatusBarColor(this.getResources().getColor(R.color.colorTransparent, null));
+        }
+    }
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         switch (requestCode) {

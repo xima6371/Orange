@@ -1,19 +1,19 @@
 package com.xima.net.orange.utils;
 
-import android.content.Context;
+import android.util.Log;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.Locale;
+
+import static com.xima.net.orange.adapter.OrangeEventsAdapter.DEBUG_TAG;
 
 /**
  * *                 (c) Copyright 2018/4/9 by xima
  * *                          All Rights Reserved
  */
 public class DateUtils {
-    public static final String TYPE_NO_INTERVALS = "without intervals";
 
     public static final int MILLISECOND = 1000;
     public static final int MINUTE = 60 * MILLISECOND;
@@ -26,21 +26,52 @@ public class DateUtils {
         return calendar.getTime();
     }
 
-    public static int getIntervals(Date date) {
-        long intervals = -1;
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.CHINA);
+    /**
+     * @param date             event的记录日期
+     * @param todayIsAfterDate 今天的日期是否在event记录日期之后
+     * @return
+     */
+    public static int getIntervals(Date date, boolean todayIsAfterDate) {
 
-        try {
-            long lastTime = dateFormat.parse(dateFormat.format(date)).getTime();
-            long currentTime = System.currentTimeMillis();
-            intervals = (currentTime - lastTime) / DAY;
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
-        return Integer.valueOf(String.valueOf(intervals));
+        int intervals;
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(new Date());
+        calendar.set(Calendar.MONTH, calendar.get(Calendar.MONTH) + 1);
+        resetUnderDay(calendar);
+
+        Date today = calendar.getTime();
+
+        calendar.setTime(date);
+        resetUnderDay(calendar);
+        Date eventDay = calendar.getTime();
+
+        if (todayIsAfterDate)
+            intervals = (int) ((today.getTime() - eventDay.getTime()) / DAY);
+        else
+            intervals = (int) ((eventDay.getTime() - today.getTime()) / DAY);
+
+//另一种实现方式,不过有版本限制 26以上版本才ok
+//        int[] todayMsg = getYearMonthDay(new Date());
+//        int[] dateMsg = getYearMonthDay(date);
+//        intervals = ChronoUnit.DAYS.between(LocalDate.of(todayMsg[0],todayMsg[1],todayMsg[2]),LocalDate.of(dateMsg[0],dateMsg[1],dateMsg[2]));
+        Log.i(DEBUG_TAG, "getIntervals: " + intervals);
+        return intervals;
     }
 
-    public static int[] getDayMonthYear(Date date) {
+    /**
+     * 将天以下的计时单位:小时,分钟,秒,毫秒重置为0
+     *
+     * @param calendar 时间日历
+     */
+    public static void resetUnderDay(Calendar calendar) {
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+    }
+
+    public static int[] getYearMonthDay(Date date) {
         int year;
         int month;
         int day;
@@ -60,55 +91,54 @@ public class DateUtils {
      * @return 返回一个含有两个元素的int数组, 索引1是 day,索引0是 age
      */
     public static int[] getDaysBetweenBirthday(Date date) {
-        int days = -1;
-        int ages = -1;
+        int days = 0;
+        int ages;
 
         // 获取今天的年月日 举例2018-04-10
-        int[] todayMsg = getDayMonthYear(new Date());
+        int[] todayMsg = getYearMonthDay(new Date());
 
         int thisYear = todayMsg[0];
-        int thisMonth = todayMsg[1];
+        int thisMonth = todayMsg[1]+1;
         int today = todayMsg[2];
 
         //获取生日的年月日 举例1998-04-10
-        int birthdayMsg[] = getDayMonthYear(date);
+        int[] birthdayMsg = getYearMonthDay(date);
         int birthYear = birthdayMsg[0];
         int birthMonth = birthdayMsg[1];
         int birthday = birthdayMsg[2];
 
-
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(date);
-        //  ages = 2018-1998 = 20;
+
         ages = thisYear - birthYear;
-        //  04 == 04
-        if (thisMonth <= birthMonth) {
-            ages -= 1;
+        if (thisMonth < birthMonth) {
             //获取今年生日
             calendar.set(Calendar.YEAR, thisYear);
-            days = getIntervals(calendar.getTime());
+            days = getIntervals(calendar.getTime(), false);
         }
-
 
         if (thisMonth == birthMonth) {
             if (today < birthday) {
-                ages -= 1;
-
                 calendar.set(Calendar.YEAR, thisYear);
-                days = getIntervals(calendar.getTime());
-            } else {
-                //今年生日已经过去超过0天，获取明年的生日间隔
+                days = getIntervals(calendar.getTime(), true);
+            } else if (today > birthday) {
+                //今年生日已经过去超过x天，获取明年的生日间隔
+                ages += 1;
                 calendar.set(Calendar.YEAR, thisYear + 1);
-                days = getIntervals(calendar.getTime());
+                days = getIntervals(calendar.getTime(), true);
+            } else {
+                days = 0;
             }
         }
-        if (thisMonth > birthday) {
+
+        if (thisMonth > birthMonth) {
+            ages += 1;
             //今年生日已经过去超过1个月，获取明年的生日间隔
             calendar.set(Calendar.YEAR, thisYear + 1);
-            days = getIntervals(calendar.getTime());
+            days = getIntervals(calendar.getTime(), false);
 
         }
-
+        Log.i(DEBUG_TAG, "getDaysBetweenBirthday: "+days);
         return new int[]{ages, days};
     }
 
