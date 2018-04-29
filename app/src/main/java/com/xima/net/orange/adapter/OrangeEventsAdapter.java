@@ -16,12 +16,16 @@ import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
+import com.google.gson.Gson;
 import com.xima.net.orange.R;
 import com.xima.net.orange.activity.EventDetailActivity;
 import com.xima.net.orange.bean.OrangeEvent;
+import com.xima.net.orange.utils.LogUtils;
+import com.xima.net.orange.utils.SharedPreferencesUtils;
 import com.xima.net.orange.utils.SwitchUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static com.xima.net.orange.activity.EventDetailActivity.EVENT_ACTION;
@@ -32,7 +36,7 @@ import static com.xima.net.orange.activity.EventDetailActivity.EVENT_ACTION_MODI
  * *                          All Rights Reserved
  */
 public class OrangeEventsAdapter extends RecyclerView.Adapter<OrangeEventsAdapter.ViewHolder> {
-    public static final String DEBUG_TAG = "debug";
+
     private Context mContext;
     private List<OrangeEvent> mEvents;
 
@@ -64,7 +68,7 @@ public class OrangeEventsAdapter extends RecyclerView.Adapter<OrangeEventsAdapte
         holder.mTvStartTime.setText(dateDescription);
         holder.mTvEvent.setText(eventDescription);
 
-        RequestOptions options = new RequestOptions().error(R.drawable.nopic);
+        RequestOptions options = new RequestOptions().error(R.drawable.no_pic);
         Glide.with(mContext).load(photoUri).apply(options).into(holder.mIvPic);
         Glide.with(mContext).load(photoUri).apply(options).into(holder.mIvPicBg);
 
@@ -76,7 +80,7 @@ public class OrangeEventsAdapter extends RecyclerView.Adapter<OrangeEventsAdapte
                 intent.putExtra(EVENT_ACTION, EVENT_ACTION_MODIFY);
                 intent.putExtra(EVENT_POSITION, position);
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    mContext.startActivity(intent, ActivityOptions.makeSceneTransitionAnimation((Activity) mContext, holder.mIvPic, "image").toBundle());
+                    mContext.startActivity(intent, ActivityOptions.makeSceneTransitionAnimation((Activity) mContext, holder.mCardView, "image").toBundle());
                 } else {
                     mContext.startActivity(intent);
                 }
@@ -104,6 +108,7 @@ public class OrangeEventsAdapter extends RecyclerView.Adapter<OrangeEventsAdapte
 
         return mEvents.size();
     }
+
 
     public class ViewHolder extends RecyclerView.ViewHolder {
 

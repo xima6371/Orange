@@ -8,15 +8,21 @@
 
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="240dp">
 
         <ImageView
             android:id="@+id/iv_event_pic"
             android:layout_width="match_parent"
-            android:layout_height="240dp"
-            android:contentDescription="@string/transitionName_pic"
+            android:layout_height="match_parent"
             android:scaleType="centerCrop"
-            android:src="@drawable/default_bg" />
+            android:src="@drawable/default_bg"
+            android:transitionName="@string/transitionName_pic" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:alpha="0.3"
+            android:background="@color/colorLightGrey" />
 
         <RelativeLayout
             android:layout_width="match_parent"
@@ -24,14 +30,6 @@
             android:background="@color/colorTransparent"
             android:padding="8dp">
 
-            <TextView
-                android:id="@+id/tv_title"
-                android:layout_width="wrap_content"
-                android:layout_height="56dp"
-                android:gravity="center_vertical"
-                android:padding="16dp"
-                android:textSize="20sp"
-                android:textStyle="bold" />
 
             <ImageButton
                 android:id="@+id/ib_delete"
@@ -55,6 +53,8 @@
                 android:scaleType="centerCrop"
                 android:src="@drawable/ic_action_save" />
         </RelativeLayout>
+
+
     </FrameLayout>
 
     <ScrollView

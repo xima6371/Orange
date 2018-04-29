@@ -11,7 +11,6 @@ import com.xima.net.orange.bean.OrangeEvent;
 import java.util.List;
 
 import static android.content.Context.MODE_PRIVATE;
-import static com.xima.net.orange.adapter.OrangeEventsAdapter.DEBUG_TAG;
 
 /**
  * *                 (c) Copyright 2018/4/14 by xima
@@ -20,6 +19,13 @@ import static com.xima.net.orange.adapter.OrangeEventsAdapter.DEBUG_TAG;
 public class SharedPreferencesUtils {
 
     public static final String KEY_EVENTS = "key_events";
+
+    public static void saveStringToSP(Context context, String key, String eventJson) {
+        SharedPreferences sp = context.getSharedPreferences("orangeEventData", MODE_PRIVATE);
+        SharedPreferences.Editor editor = sp.edit();
+        editor.putString(key, eventJson);
+        editor.apply();
+    }
 
     public static String getStringFromSP(Context context, String key, String defaultStr) {
         SharedPreferences sp = context.getSharedPreferences("orangeEventData", MODE_PRIVATE);
@@ -32,10 +38,5 @@ public class SharedPreferencesUtils {
         }.getType());
     }
 
-    public static void saveStringToSP(Context context, String key, String eventJson) {
-        SharedPreferences sp = context.getSharedPreferences("orangeEventData", MODE_PRIVATE);
-        SharedPreferences.Editor editor = sp.edit();
-        editor.putString(key, eventJson);
-        editor.apply();
-    }
+
 }

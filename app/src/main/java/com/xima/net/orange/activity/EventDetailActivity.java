@@ -1,17 +1,14 @@
 package com.xima.net.orange.activity;
 
-import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.CompoundButton;
-import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -26,30 +23,29 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.xima.net.orange.R;
 import com.xima.net.orange.bean.OrangeEvent;
+import com.xima.net.orange.fragment.DatePickerFragment;
 import com.xima.net.orange.utils.DateUtils;
+import com.xima.net.orange.utils.LogUtils;
 import com.xima.net.orange.utils.SharedPreferencesUtils;
 import com.xima.net.orange.utils.ToastUtils;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import static com.xima.net.orange.activity.MainActivity.REQUEST_CODE_PICK_PHOTO;
-import static com.xima.net.orange.adapter.OrangeEventsAdapter.DEBUG_TAG;
 import static com.xima.net.orange.adapter.OrangeEventsAdapter.EVENT_JSON;
 import static com.xima.net.orange.adapter.OrangeEventsAdapter.EVENT_POSITION;
 import static com.xima.net.orange.bean.OrangeEvent.TYPE_ANNIVERSARY;
 import static com.xima.net.orange.bean.OrangeEvent.TYPE_BIRTHDAY;
 import static com.xima.net.orange.bean.OrangeEvent.TYPE_COUNTDOWN;
 
-public class EventDetailActivity extends AppCompatActivity implements View.OnClickListener, RadioGroup.OnCheckedChangeListener {
+public class EventDetailActivity extends AppCompatActivity implements View.OnClickListener, RadioGroup.OnCheckedChangeListener, DatePickerFragment.OnDateSetListener {
 
     public static final String PHOTO_URI = "photo_uri";
     public static final String EVENT_ACTION = "action_event";
     public static final String EVENT_ACTION_ADD = "action_event_add";
     public static final String EVENT_ACTION_MODIFY = "action_event_MODIFY";
 
-    private TextView mTvTitle;
     private ImageButton mIbSave, mIbDelete;
     private ImageView mIvEventPic;
     private RadioGroup mRgType;
@@ -60,9 +56,11 @@ public class EventDetailActivity extends AppCompatActivity implements View.OnCli
     private EditText mEtEventTitle;
 
     private List<OrangeEvent> mEvents;
+    private DatePickerFragment datePickerFragment;
 
     private int eventPosition;
     private String eventAction = "";
+
     private String eventPhotoUri = "";
     private String eventTitle = "";
     private int eventType = 0;
@@ -85,7 +83,7 @@ public class EventDetailActivity extends AppCompatActivity implements View.OnCli
     }
 
     private void initView() {
-        mTvTitle = findViewById(R.id.tv_title);
+
         mIbDelete = findViewById(R.id.ib_delete);
         mIbSave = findViewById(R.id.ib_save);
 
@@ -103,6 +101,7 @@ public class EventDetailActivity extends AppCompatActivity implements View.OnCli
 
         mEtEventTitle = findViewById(R.id.et_event_title);
 
+        datePickerFragment = new DatePickerFragment();
     }
 
     private void initData() {
@@ -116,11 +115,11 @@ public class EventDetailActivity extends AppCompatActivity implements View.OnCli
         switch (eventAction) {
             case EVENT_ACTION_ADD:
                 eventPhotoUri = intent.getStringExtra(PHOTO_URI);
-                Log.i(DEBUG_TAG, "initData: " + eventPhotoUri);
+
                 break;
 
             case EVENT_ACTION_MODIFY:
-                mTvTitle.setText("修改事件");
+
                 mIbDelete.setVisibility(View.VISIBLE);
 
                 Gson gson = new Gson();
@@ -137,7 +136,6 @@ public class EventDetailActivity extends AppCompatActivity implements View.OnCli
                 eventYear = day[0];
                 eventMonth = day[1];
                 eventDay = day[2];
-                Log.i(DEBUG_TAG, "initData: " + eventMonth);
 
                 mSwitchTop.setChecked(eventIsTop);
                 mTvEventDate.setText(eventTime);
@@ -181,6 +179,7 @@ public class EventDetailActivity extends AppCompatActivity implements View.OnCli
         mIvEventPic.setOnClickListener(this);
         mRgType.setOnCheckedChangeListener(this);
         mLLDate.setOnClickListener(this);
+        datePickerFragment.setListener(this);
 
         mSwitchTop.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -227,26 +226,32 @@ public class EventDetailActivity extends AppCompatActivity implements View.OnCli
                 break;
 
             case R.id.ll_date:
-                //获取当前时间的年月日
-                int date[] = DateUtils.getYearMonthDay(new Date());
-                final DatePickerDialog datePickerDialog = new DatePickerDialog(this, R.style.AppTheme, new DatePickerDialog.OnDateSetListener() {
-                    @Override
-                    public void onDateSet(DatePicker view, int year, int month, int dayOfMonth) {
-                        eventYear = year;
-                        eventMonth = month + 1;
-                        eventDay = dayOfMonth;
-                        eventTime = eventYear + "-" + eventMonth + "-" + eventDay;
-                        mTvEventDate.setText(eventTime);
-                    }
-                }, date[0], date[1], date[2]);
+                showDateDialog();
 
-                datePickerDialog.show();
                 break;
 
             default:
                 break;
         }
 
+    }
+
+    private void showDateDialog() {
+        datePickerFragment.show(getSupportFragmentManager(), "dialog");
+//        //获取当前时间的年月日
+//        int date[] = DateUtils.getYearMonthDay(new Date());
+//        final DatePickerDialog datePickerDialog = new DatePickerDialog(this, 0, new DatePickerDialog.OnDateSetListener() {
+//            @Override
+//            public void onDateSet(DatePicker view, int year, int month, int dayOfMonth) {
+//                eventYear = year;
+//                eventMonth = month + 1;
+//                eventDay = dayOfMonth;
+//                eventTime = eventYear + "-" + eventMonth + "-" + eventDay;
+//                mTvEventDate.setText(eventTime);
+//            }
+//        }, date[0], date[1], date[2]);
+//
+//        datePickerDialog.show();
     }
 
     private void deleteEvent() {
@@ -265,7 +270,7 @@ public class EventDetailActivity extends AppCompatActivity implements View.OnCli
         if (!checkEventIsEmpty()) {
 
             eventTime = eventYear + "-" + eventMonth + "-" + eventDay;
-            Log.i(DEBUG_TAG, "saveEvent: " + eventMonth);
+
             switch (eventAction) {
                 case EVENT_ACTION_ADD:
 
@@ -274,7 +279,7 @@ public class EventDetailActivity extends AppCompatActivity implements View.OnCli
 
                     OrangeEvent orangeEvent = new OrangeEvent(eventTitle, eventType, eventPhotoUri, eventIsTop);
                     orangeEvent.setStartTime(eventTime);
-                    orangeEvent.setDate(DateUtils.getDate(eventYear, eventMonth , eventDay));
+                    orangeEvent.setDate(DateUtils.getDate(eventYear, eventMonth, eventDay));
                     mEvents.add(orangeEvent);
 
                     break;
@@ -287,7 +292,6 @@ public class EventDetailActivity extends AppCompatActivity implements View.OnCli
                         e.setTitle(eventTitle);
                         e.setType(eventType);
                         e.setStartTime(eventTime);
-                        Log.i(DEBUG_TAG, "saveEvent: " + (eventMonth));
                         e.setDate(DateUtils.getDate(eventYear, eventMonth, eventDay));
                         e.setTop(eventIsTop);
                     }
@@ -344,4 +348,13 @@ public class EventDetailActivity extends AppCompatActivity implements View.OnCli
             }
     }
 
+    @Override
+    public void onDateSet(int year, int month, int dayOfMonth) {
+        eventYear = year;
+        eventMonth = month + 1;
+        eventDay = dayOfMonth;
+        LogUtils.i("month", eventMonth + "");
+        eventTime = eventYear + "-" + eventMonth + "-" + eventDay;
+        mTvEventDate.setText(eventTime);
+    }
 }

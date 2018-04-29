@@ -18,7 +18,7 @@ public class SwitchUtils {
 
 
     public static int getGap(OrangeEvent event) {
-        // TODO: 2018/4/17 待修改bug
+
         int gap = 0;
         switch (event.getType()) {
             case TYPE_ANNIVERSARY:
@@ -28,6 +28,8 @@ public class SwitchUtils {
 
             case TYPE_BIRTHDAY:
                 gap = DateUtils.getDaysBetweenBirthday(event.getDate())[1];
+                if (gap < 0)
+                    gap = Math.abs(gap);
                 break;
 
             case TYPE_COUNTDOWN:
@@ -59,7 +61,7 @@ public class SwitchUtils {
                     eventDescription = "今天是：" + title + " 纪念日哦！";
                 }
                 if (daysBetweenAnniversary > 0) {
-                    eventDescription = title + "已经纪念了：" + daysBetweenAnniversary + " 天";
+                    eventDescription = title + "已纪念：" + daysBetweenAnniversary + " 天";
                 }
 
                 dateDescription = "纪念日: " + event.getStartTime();
@@ -70,15 +72,14 @@ public class SwitchUtils {
                 int ages = agesAndDays[0];
                 int days = agesAndDays[1];
 
-
                 if (days < 0) {
                     days = Math.abs(days);
                 }
                 eventDescription = "距离" + title.replace("生日", "") + " " + ages + " 岁生日还有 " + days + " 天";
                 if (days == 0) {
-                    eventDescription = "今天它/他/她 " + ages + " 生日噢，快送上生日祝福吧";
+                    eventDescription = "今天" + title + ages + "岁生日噢,快送上生日祝福吧";
                 }
-                if (ages < 0 || (ages == 0 && agesAndDays[1] <= 0)) {
+                if (ages < 0 || (ages == 0 && agesAndDays[1] < 0)) {
                     eventDescription = "你的生日选错啦,请重选哦";
                 }
                 dateDescription = "生日: " + event.getStartTime();
@@ -93,7 +94,7 @@ public class SwitchUtils {
                     eventDescription = title + "已经到来";
                 }
                 if (daysBetweenCount > 0) {
-                    eventDescription = title + "还有 " + daysBetweenCount + " 天到来";
+                    eventDescription = title + "还有 " + daysBetweenCount + " 天";
                 }
                 dateDescription = "倒计时日: " + event.getStartTime();
                 break;

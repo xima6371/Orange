@@ -1,13 +1,8 @@
 package com.xima.net.orange.utils;
 
-import android.util.Log;
-
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.Calendar;
 import java.util.Date;
 
-import static com.xima.net.orange.adapter.OrangeEventsAdapter.DEBUG_TAG;
 
 /**
  * *                 (c) Copyright 2018/4/9 by xima
@@ -55,7 +50,6 @@ public class DateUtils {
 //        int[] todayMsg = getYearMonthDay(new Date());
 //        int[] dateMsg = getYearMonthDay(date);
 //        intervals = ChronoUnit.DAYS.between(LocalDate.of(todayMsg[0],todayMsg[1],todayMsg[2]),LocalDate.of(dateMsg[0],dateMsg[1],dateMsg[2]));
-        Log.i(DEBUG_TAG, "getIntervals: " + intervals);
         return intervals;
     }
 
@@ -138,7 +132,6 @@ public class DateUtils {
             days = getIntervals(calendar.getTime(), false);
 
         }
-        Log.i(DEBUG_TAG, "getDaysBetweenBirthday: "+days);
         return new int[]{ages, days};
     }
 
