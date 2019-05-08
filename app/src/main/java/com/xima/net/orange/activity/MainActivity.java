@@ -1,231 +1,202 @@
 package com.xima.net.orange.activity;
 
-import android.Manifest;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.os.Build;
-import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.FloatingActionButton;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.text.Spannable;
-import android.text.SpannableStringBuilder;
-import android.text.style.AbsoluteSizeSpan;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
+import com.gyf.immersionbar.ImmersionBar;
 import com.xima.net.orange.R;
-import com.xima.net.orange.adapter.OrangeEventsAdapter;
-import com.xima.net.orange.bean.OrangeEvent;
+import com.xima.net.orange.adapter.EventsAdapter;
+import com.xima.net.orange.bean.Event;
+import com.xima.net.orange.helper.ItemDragHelper;
 import com.xima.net.orange.helper.RecyclerDragHelper;
-import com.xima.net.orange.listener.ItemDragCallBack;
-import com.xima.net.orange.utils.SharedPreferencesUtils;
-import com.xima.net.orange.utils.SwitchUtils;
-import com.xima.net.orange.utils.ToastUtils;
+import com.xima.net.orange.listener.OnSwipeListener;
+import com.xima.net.orange.utils.Constant;
+
+import org.litepal.LitePal;
+import org.litepal.crud.callback.FindMultiCallback;
+import org.litepal.tablemanager.Connector;
 
 import java.util.List;
 
-import static com.xima.net.orange.activity.EventDetailActivity.EVENT_ACTION;
-import static com.xima.net.orange.activity.EventDetailActivity.EVENT_ACTION_ADD;
-import static com.xima.net.orange.activity.EventDetailActivity.PHOTO_URI;
+public class MainActivity extends BaseActivity implements AppBarLayout.OnOffsetChangedListener, View.OnClickListener {
 
-public class MainActivity extends AppCompatActivity {
-
-    private FloatingActionButton mFabAdd;
-    private RecyclerView mRvEvent;
     private AppBarLayout mAppBarLayout;
-
-    private TextView mTvTitle, mTvEvent, mTvStartTime, mTvDays;
     private LinearLayout mLLInfo;
 
-    private ImageView mIvEventBg;
+    private TextView mTvTitle, mTvEventDes, mTvStartTime, mTvDays, mTvShowDays;
+    private ImageView mIvTopBg;
+    private FloatingActionButton mFabAdd;
+    private RecyclerView mRecyclerView;
 
-    private LinearLayoutManager mLayoutManager;
+    private List<Event> mEvents;
+
+    private EventsAdapter mAdapter;
     private RecyclerDragHelper mRecyclerDragHelper;
-    private ItemDragCallBack mDragCallBack;
 
-
-    private List<OrangeEvent> mEvents;
-    private OrangeEvent topEvent;
-    private OrangeEventsAdapter mAdapter;
-
-    public static final int REQUEST_CODE_WRITE_PERMISSIONS = 1000;
-    public static final int REQUEST_CODE_PICK_PHOTO = 1001;
-
+    private ItemDragHelper dragListener;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setBarTransparent();
-        setContentView(R.layout.activity_main);
-
-        initView();//绑定视图
-        initData();
-        initEvent();
+    protected void beforeSetContentView() {
+        super.beforeSetContentView();
+        ImmersionBar.with(this)
+                .init();
     }
 
     @Override
-    protected void onRestart() {
-        super.onRestart();
-        resetData();
+    protected int getLayoutResID() {
+        return R.layout.activity_main;
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        switch (requestCode) {
-            case REQUEST_CODE_WRITE_PERMISSIONS:
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    startActivityForResult(EventDetailActivity.newIntent(), REQUEST_CODE_PICK_PHOTO);
-                } else {
-                    ToastUtils.error(this, "您取消了获权,无法选取图片");
-                }
-                break;
-
-            default:
-                break;
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        switch (requestCode) {
-            case REQUEST_CODE_PICK_PHOTO:
-                if (data != null) {
-                    String photoUri = data.getDataString();
-                    Intent intent = new Intent(this, EventDetailActivity.class);
-                    intent.putExtra(EVENT_ACTION, EVENT_ACTION_ADD);
-                    intent.putExtra(PHOTO_URI, photoUri);
-                    startActivity(intent);
-
-                }
-                break;
-        }
-    }
-
-    private void initView() {
-        mFabAdd = findViewById(R.id.fab_add);
-        mRvEvent = findViewById(R.id.rv_event);
+    protected void initView() {
+        mLLInfo = findViewById(R.id.ll_info);
         mAppBarLayout = findViewById(R.id.appbar_layout);
 
         mTvTitle = findViewById(R.id.tv_title);
         mTvStartTime = findViewById(R.id.tv_start_time);
-        mTvEvent = findViewById(R.id.tv_event);
         mTvDays = findViewById(R.id.tv_days);
-        mLLInfo = findViewById(R.id.ll_info);
-
-        mIvEventBg = findViewById(R.id.iv_bg);
-
+        mTvShowDays = findViewById(R.id.tv_show_day);
+        mTvEventDes = findViewById(R.id.tv_event_des);
+        mIvTopBg = findViewById(R.id.iv_top_bg);
+        mFabAdd = findViewById(R.id.fab_add);
+        mRecyclerView = findViewById(R.id.rv_event);
     }
 
-    private void initData() {
+    @Override
+    protected void initData() {
+        //配置RecyclerView的数据
+        LinearLayoutManager mLayoutManager = new LinearLayoutManager(this);
+        mAdapter = new EventsAdapter(this);
+        mRecyclerView.setLayoutManager(mLayoutManager);
+        mRecyclerView.setAdapter(mAdapter);
+        //开启数据库
+        Connector.getDatabase();
+        //异步查询所有数据
+        LitePal.findAllAsync(Event.class).listen(new FindMultiCallback<Event>() {
+            @Override
+            public void onFinish(List<Event> list) {
+                mAdapter.addAll(list);
+                mAdapter.notifyItemRangeChanged(0, list.size());
+                mEvents = list;
+                initTopEvent();
+            }
+        });
+    }
 
-        mEvents = SharedPreferencesUtils.getListFromSp(this, SharedPreferencesUtils.KEY_EVENTS, "");
+    @Override
+    protected void initEvent() {
+        //配置拖拽排序监听器
+        dragListener = new ItemDragHelper(mRecyclerView);
+        dragListener.addListener(new OnSwipeListener() {
+            @Override
+            public void onSwiped(boolean isTop) {
+                if (isTop) {
+                    mEvents = mAdapter.getEvents();
+                    initTopEvent();
+                }
+            }
+        });
+        mRecyclerDragHelper = new RecyclerDragHelper(dragListener);
+        mRecyclerDragHelper.attachToRecyclerView(mRecyclerView);
+
+        //配置点击事件监听器
+        mFabAdd.setOnClickListener(this);
+        mAppBarLayout.addOnOffsetChangedListener(this);
+    }
+
+    private void initTopEvent() {
 
         if (mEvents == null || mEvents.size() == 0) {
             topEventTips("快来添加你的事件吧");
         } else {
-
-            for (OrangeEvent e : mEvents)
-                if (e.isTop())
-                    topEvent = e;
-
-
+            //获取顶置的事件
+            Event topEvent = getTopEvent();
             if (topEvent != null) {
-                //设置不同大小的text 比如1000天  1000是48sp,天是24sp;
-                int days = SwitchUtils.getGap(topEvent);
-                String dayText = days + " 天";
-                AbsoluteSizeSpan sizeSpan = new AbsoluteSizeSpan(36);
-                SpannableStringBuilder spannableStringBuilder = new SpannableStringBuilder(dayText);
-                spannableStringBuilder.setSpan(sizeSpan, dayText.length() - 2, dayText.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
 
-                String[] eventMsg = SwitchUtils.getEventMsg(topEvent);
+                //计时天数
+                mTvDays.setText(topEvent.getIntervals());
 
-                mTvDays.setText(spannableStringBuilder);
-                mTvEvent.setText(eventMsg[0]);
+                //事件描述,上滑时显示
+                mTvEventDes.setText(topEvent.getEventDes(false));
 
-                Glide.with(this).load(topEvent.getPicturePath()).into(mIvEventBg);
+                //加载图片
+                String path = topEvent.getPath();
+
+                if (path != null && !path.isEmpty() && !path.equals(Constant.EVENT_DEFAULT_PHOTO_PATH)) {
+                    Glide.with(this).load(path).into(mIvTopBg);
+                } else {
+                    mIvTopBg.setImageBitmap(null);
+                }
+
                 mTvTitle.setText(topEvent.getTitle());
-                mTvStartTime.setText(topEvent.getStartTime());
+                mTvStartTime.setText(topEvent.getDateDes());
 
+                mTvShowDays.setVisibility(View.VISIBLE);
                 mTvStartTime.setVisibility(View.VISIBLE);
                 mTvDays.setVisibility(View.VISIBLE);
             } else {
                 topEventTips("快来添加你的顶置事件吧");
             }
         }
+
     }
 
-    private void initEvent() {
+    private Event getTopEvent() {
+        for (Event e : mEvents)
+            if (e.isTop())
+                return e;
 
-        mLayoutManager = new LinearLayoutManager(this);
-        mDragCallBack = new ItemDragCallBack(this, mRvEvent);
-        mAdapter = new OrangeEventsAdapter(this);
-
-        mRecyclerDragHelper = new RecyclerDragHelper(mDragCallBack);
-        mRecyclerDragHelper.attachToRecyclerView(mRvEvent);
-
-        mAdapter.setEvents(mEvents);
-        mRvEvent.setLayoutManager(mLayoutManager);
-        mRvEvent.setAdapter(mAdapter);
-
-        mFabAdd.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (ContextCompat.checkSelfPermission(MainActivity.this,
-                        Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                    //申请权限
-                    ActivityCompat.requestPermissions(MainActivity.this,
-                            new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_CODE_WRITE_PERMISSIONS);
-                } else {
-                    startActivityForResult(EventDetailActivity.newIntent(), REQUEST_CODE_PICK_PHOTO);
-                }
-            }
-        });
-
-        mAppBarLayout.addOnOffsetChangedListener(new AppBarLayout.OnOffsetChangedListener() {
-            @Override
-            public void onOffsetChanged(AppBarLayout appBarLayout, int verticalOffset) {
-                int scrollRange = appBarLayout.getTotalScrollRange();
-                float infoAlpha = 1 - (Math.abs(verticalOffset) * 1.0f / scrollRange);
-                mLLInfo.setAlpha(infoAlpha);
-                mTvEvent.setAlpha(1 - infoAlpha);
-            }
-        });
-    }
-
-    private void resetData() {
-        initData();
-        mAdapter.setEvents(mEvents);
-        mAdapter.notifyDataSetChanged();
+        return null;
     }
 
     private void topEventTips(String tips) {
         mTvTitle.setText(tips);
-        mTvEvent.setText(tips);
+        mTvEventDes.setText(tips);
+        mTvShowDays.setVisibility(View.GONE);
+        mIvTopBg.setImageBitmap(null);
         mTvStartTime.setVisibility(View.GONE);
         mTvDays.setVisibility(View.GONE);
     }
 
-    private void setBarTransparent() {
-        this.supportRequestWindowFeature(Window.FEATURE_NO_TITLE);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            Window window = this.getWindow();
-            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-            window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                    | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
-            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-            window.setStatusBarColor(this.getResources().getColor(R.color.colorTransparent, null));
+    @Override
+    public void onOffsetChanged(AppBarLayout appBarLayout, int verticalOffset) {
+        int scrollRange = appBarLayout.getTotalScrollRange();
+        float infoAlpha = 1 - (Math.abs(verticalOffset) * 1.0f / scrollRange);
+        mLLInfo.setAlpha(infoAlpha);
+        mTvEventDes.setAlpha(1 - infoAlpha);
+    }
+
+    @Override
+    public void onClick(View v) {
+        if (v.getId() == R.id.fab_add) {
+            Intent intent = new Intent(this, EventDetailActivity.class);
+            intent.putExtra(Constant.EVENT_ACTION, Constant.EVENT_ACTION_ADD);
+            intent.putExtra(Constant.EVENT_LAST_TOP, mAdapter.getLastTop());
+            startActivity(intent);
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
         }
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        initData();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mAppBarLayout.removeOnOffsetChangedListener(this);
+        dragListener.removeListener();
+        mRecyclerDragHelper = null;
     }
 
 }

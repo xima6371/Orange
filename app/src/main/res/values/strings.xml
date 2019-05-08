@@ -1,18 +1,22 @@
 <resources>
     <string name="app_name">Orange</string>
-    <string name="title">毕业</string>
-    <string name="event">毕业已经365天了</string>
-    <string name="start_time">2018-04-01</string>
 
-    <string name="already">已经</string>
-    <string name="transitionName_pic">image</string>
-    <string name="event_hint">开始记录:\n要纪念的某日子,某人的生日,某件即将到来的事情…\n记得选择类型噢~</string>
+
+
+
+
+    <string name="tn_pic">image</string>
+    <string name="event_hint">开始记录你的小日子吧~</string>
     <string name="event_type">类型</string>
     <string name="anniversary">纪念日</string>
     <string name="birthday">生日</string>
     <string name="countdown">倒计时</string>
-    <string name="time">日期</string>
 
+    <string name="empty_event_tip">\t开始你的旅程吧！\n点击 + 按钮记录生活~</string>
+    <string name="pic_preview">封面大图预览</string>
+    <string name="edit">编辑事件</string>
+    <string name="day">天</string>
+    <string name="top">顶置</string>
 
 
 </resources>

@@ -1,299 +1,152 @@
 package com.xima.net.orange.activity;
 
+import android.Manifest;
 import android.content.Intent;
-import android.os.Build;
-import android.os.Bundle;
+import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.net.Uri;
 import android.provider.MediaStore;
-import android.support.v7.app.AppCompatActivity;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.view.View;
-import android.view.Window;
 import android.view.WindowManager;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Switch;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import com.gyf.immersionbar.ImmersionBar;
 import com.xima.net.orange.R;
-import com.xima.net.orange.bean.OrangeEvent;
+import com.xima.net.orange.bean.Event;
 import com.xima.net.orange.fragment.DatePickerFragment;
+import com.xima.net.orange.listener.OnDateSetListener;
+import com.xima.net.orange.utils.Constant;
 import com.xima.net.orange.utils.DateUtils;
-import com.xima.net.orange.utils.LogUtils;
-import com.xima.net.orange.utils.SharedPreferencesUtils;
 import com.xima.net.orange.utils.ToastUtils;
 
-import java.util.ArrayList;
+import org.litepal.LitePal;
+
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
-import static com.xima.net.orange.activity.MainActivity.REQUEST_CODE_PICK_PHOTO;
-import static com.xima.net.orange.adapter.OrangeEventsAdapter.EVENT_JSON;
-import static com.xima.net.orange.adapter.OrangeEventsAdapter.EVENT_POSITION;
-import static com.xima.net.orange.bean.OrangeEvent.TYPE_ANNIVERSARY;
-import static com.xima.net.orange.bean.OrangeEvent.TYPE_BIRTHDAY;
-import static com.xima.net.orange.bean.OrangeEvent.TYPE_COUNTDOWN;
+import static com.xima.net.orange.utils.Constant.EVENT_ACTION_ADD;
+import static com.xima.net.orange.utils.Constant.EVENT_ACTION_MODIFY;
+import static com.xima.net.orange.utils.Constant.REQUEST_CODE_PICK_PHOTO;
+import static com.xima.net.orange.utils.Constant.REQUEST_CODE_WRITE_PERMISSIONS;
 
-public class EventDetailActivity extends AppCompatActivity implements View.OnClickListener, RadioGroup.OnCheckedChangeListener, DatePickerFragment.OnDateSetListener {
+public class EventDetailActivity extends BaseActivity implements View.OnClickListener,
+        RadioGroup.OnCheckedChangeListener, OnDateSetListener {
 
-    public static final String PHOTO_URI = "photo_uri";
-    public static final String EVENT_ACTION = "action_event";
-    public static final String EVENT_ACTION_ADD = "action_event_add";
-    public static final String EVENT_ACTION_MODIFY = "action_event_MODIFY";
-
-    private ImageButton mIbSave, mIbDelete;
-    private ImageView mIvEventPic;
+    private ImageButton mIbBack, mIbDelete, mIbPhoto, mIbSave;
+    private ImageView mIvPhoto;
     private RadioGroup mRgType;
-    private RadioButton mRbAnniversary, mRbBirthday, mRbCountdown;
     private Switch mSwitchTop;
+    private TextView mTvTime;
+    private EditText mEtTitle;
+
     private LinearLayout mLLDate;
-    private TextView mTvEventDate;
-    private EditText mEtEventTitle;
 
-    private List<OrangeEvent> mEvents;
-    private DatePickerFragment datePickerFragment;
+    private DatePickerFragment mDatePicker;
 
-    private int eventPosition;
-    private String eventAction = "";
+    private String action;
+    private String path;
+    private String title;
+    private String time;
+    private Date date;
 
-    private String eventPhotoUri = "";
-    private String eventTitle = "";
-    private int eventType = 0;
-    private String eventTime = "";
-    private boolean eventIsTop = false;
+    private boolean top = false;
+    private boolean dateChanged = false;
 
+    private int type = 0;
     private int eventYear, eventMonth, eventDay;
 
+    private long hash = -1;
+    private long lastHash = -1;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setBarTransparent();
-        setContentView(R.layout.activity_event_detail);
-
-        initView();
-        initData();
-        initEvent();
-
+    protected void beforeSetContentView() {
+        super.beforeSetContentView();
+        ImmersionBar.with(this)
+                .statusBarDarkFont(true)
+                .init();
     }
 
-    private void initView() {
+    @Override
+    protected int getLayoutResID() {
+        return R.layout.activity_event_detail;
+    }
 
+    @Override
+    protected void initView() {
+        mIbBack = findViewById(R.id.ib_back);
         mIbDelete = findViewById(R.id.ib_delete);
         mIbSave = findViewById(R.id.ib_save);
-
-        mIvEventPic = findViewById(R.id.iv_event_pic);
+        mIbPhoto = findViewById(R.id.ib_photo);
+        mIvPhoto = findViewById(R.id.iv_photo);
 
         mRgType = findViewById(R.id.rg_choose_type);
-        mRbAnniversary = findViewById(R.id.rb_anniversary);
-        mRbBirthday = findViewById(R.id.rb_birthday);
-        mRbCountdown = findViewById(R.id.rb_countdown);
 
         mSwitchTop = findViewById(R.id.switch_isTop);
-
         mLLDate = findViewById(R.id.ll_date);
-        mTvEventDate = findViewById(R.id.tv_event_date);
+        mTvTime = findViewById(R.id.tv_event_time);
+        mEtTitle = findViewById(R.id.et_event_title);
 
-        mEtEventTitle = findViewById(R.id.et_event_title);
-
-        datePickerFragment = new DatePickerFragment();
-    }
-
-    private void initData() {
-
-        Intent intent = getIntent();
-        eventAction = intent.getStringExtra(EVENT_ACTION);
-        eventPosition = intent.getIntExtra(EVENT_POSITION, -1000);
-
-        mEvents = SharedPreferencesUtils.getListFromSp(this, SharedPreferencesUtils.KEY_EVENTS, "");
-
-        switch (eventAction) {
-            case EVENT_ACTION_ADD:
-                eventPhotoUri = intent.getStringExtra(PHOTO_URI);
-
-                break;
-
-            case EVENT_ACTION_MODIFY:
-
-                mIbDelete.setVisibility(View.VISIBLE);
-
-                Gson gson = new Gson();
-                OrangeEvent orangeEvent = gson.fromJson(intent.getStringExtra(EVENT_JSON), new TypeToken<OrangeEvent>() {
-                }.getType());
-
-                eventPhotoUri = orangeEvent.getPicturePath();
-                eventType = orangeEvent.getType();
-                eventIsTop = orangeEvent.isTop();
-                eventTime = orangeEvent.getStartTime();
-                eventTitle = orangeEvent.getTitle();
-
-                int[] day = DateUtils.getYearMonthDay(orangeEvent.getDate());
-                eventYear = day[0];
-                eventMonth = day[1];
-                eventDay = day[2];
-
-                mSwitchTop.setChecked(eventIsTop);
-                mTvEventDate.setText(eventTime);
-                mEtEventTitle.setText(eventTitle);
-
-                break;
-
-            default:
-                break;
-        }
-
-        Glide.with(this).load(eventPhotoUri).into(mIvEventPic);
-
-        switch (eventType) {
-            case TYPE_ANNIVERSARY:
-                mRgType.check(R.id.rb_anniversary);
-                eventType = TYPE_ANNIVERSARY;
-                break;
-            case TYPE_BIRTHDAY:
-                mRgType.check(R.id.rb_birthday);
-                eventType = TYPE_BIRTHDAY;
-                break;
-            case TYPE_COUNTDOWN:
-                mRgType.check(R.id.rb_countdown);
-                eventType = TYPE_COUNTDOWN;
-                break;
-            default:
-                break;
-        }
-
-    }
-
-    private void initEvent() {
-
-        //不弹出输入法
-        mEtEventTitle.setSelection(eventTitle.length());
-        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
-
-        mIbDelete.setOnClickListener(this);
-        mIbSave.setOnClickListener(this);
-        mIvEventPic.setOnClickListener(this);
-        mRgType.setOnCheckedChangeListener(this);
-        mLLDate.setOnClickListener(this);
-        datePickerFragment.setListener(this);
-
-        mSwitchTop.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                eventIsTop = isChecked;
-            }
-        });
-    }
-
-    public void setBarTransparent() {
-        this.supportRequestWindowFeature(Window.FEATURE_NO_TITLE);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            Window window = this.getWindow();
-            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-            window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                    | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
-            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-            window.setStatusBarColor(this.getResources().getColor(R.color.colorTransparent, null));
-        }
-    }
-
-    /**
-     * @return 返回一个获取指定image uri的信使
-     */
-    public static Intent newIntent() {
-        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
-        return intent;
+        mDatePicker = new DatePickerFragment();
     }
 
     @Override
-    public void onClick(View v) {
-        switch (v.getId()) {
-            case R.id.ib_delete:
-                deleteEvent();
-                break;
+    protected void initData() {
 
-            case R.id.ib_save:
-                saveEvent();
-                break;
+        Intent intent = getIntent();
+        if (intent != null) {
+            action = intent.getStringExtra(Constant.EVENT_ACTION);
+            hash = intent.getLongExtra(Constant.EVENT_ACTION_MODIFY, -1);
+            lastHash = intent.getLongExtra(Constant.EVENT_LAST_TOP, -1);
 
-            case R.id.iv_event_pic:
-                startActivityForResult(newIntent(), REQUEST_CODE_PICK_PHOTO);
-                break;
-
-            case R.id.ll_date:
-                showDateDialog();
-
-                break;
-
-            default:
-                break;
-        }
-
-    }
-
-    private void showDateDialog() {
-        datePickerFragment.show(getSupportFragmentManager(), "dialog");
-//        //获取当前时间的年月日
-//        int date[] = DateUtils.getYearMonthDay(new Date());
-//        final DatePickerDialog datePickerDialog = new DatePickerDialog(this, 0, new DatePickerDialog.OnDateSetListener() {
-//            @Override
-//            public void onDateSet(DatePicker view, int year, int month, int dayOfMonth) {
-//                eventYear = year;
-//                eventMonth = month + 1;
-//                eventDay = dayOfMonth;
-//                eventTime = eventYear + "-" + eventMonth + "-" + eventDay;
-//                mTvEventDate.setText(eventTime);
-//            }
-//        }, date[0], date[1], date[2]);
-//
-//        datePickerDialog.show();
-    }
-
-    private void deleteEvent() {
-        if (mEvents.size() - 1 >= eventPosition) {
-            mEvents.remove(eventPosition);
-            saveEventDataToSP();
-        } else {
-            ToastUtils.error(this, "未知错误,请返回主界面重来~");
-        }
-    }
-
-    private void saveEvent() {
-
-        eventTitle = mEtEventTitle.getText().toString();
-
-        if (!checkEventIsEmpty()) {
-
-            eventTime = eventYear + "-" + eventMonth + "-" + eventDay;
-
-            switch (eventAction) {
+            switch (action) {
                 case EVENT_ACTION_ADD:
-
-                    if (mEvents == null)
-                        mEvents = new ArrayList<>();
-
-                    OrangeEvent orangeEvent = new OrangeEvent(eventTitle, eventType, eventPhotoUri, eventIsTop);
-                    orangeEvent.setStartTime(eventTime);
-                    orangeEvent.setDate(DateUtils.getDate(eventYear, eventMonth, eventDay));
-                    mEvents.add(orangeEvent);
+                    //配置当前年月日
+                    getCurDate();
 
                     break;
 
                 case EVENT_ACTION_MODIFY:
-                    if (mEvents != null && mEvents.size() != 0 && eventPosition >= 0) {
-                        OrangeEvent e = mEvents.get(eventPosition);
+                    List<Event> events = LitePal.where("hash = ?", String.valueOf(hash))
+                            .find(Event.class);
+                    Event event = events.get(0);
+                    if (hash == -1) {
+                        ToastUtils.error(this, "未能从数据库中找到该事件");
+                    } else {
+                        path = event.getPath();
+                        type = event.getType();
+                        title = event.getTitle();
+                        top = event.isTop();
 
-                        e.setPicturePath(eventPhotoUri);
-                        e.setTitle(eventTitle);
-                        e.setType(eventType);
-                        e.setStartTime(eventTime);
-                        e.setDate(DateUtils.getDate(eventYear, eventMonth, eventDay));
-                        e.setTop(eventIsTop);
+                        mIbDelete.setVisibility(View.VISIBLE);
+                        mSwitchTop.setChecked(top);
+                        mTvTime.setText(event.getDateDes());
+                        mEtTitle.setText(title);
+
+                        switch (type) {
+                            case Constant.EVENT_TYPE_ANNIVERSARY:
+                                mRgType.check(R.id.rb_anniversary);
+                                break;
+                            case Constant.EVENT_TYPE_BIRTHDAY:
+                                mRgType.check(R.id.rb_birthday);
+                                break;
+                            case Constant.EVENT_TYPE_COUNTDOWN:
+                                mRgType.check(R.id.rb_countdown);
+                                break;
+                            default:
+                                break;
+                        }
                     }
 
                     break;
@@ -301,18 +154,155 @@ public class EventDetailActivity extends AppCompatActivity implements View.OnCli
                 default:
                     break;
             }
-            saveEventDataToSP();
 
+            Glide.with(this).load(path).into(mIvPhoto);
+
+        } else {
+            ToastUtils.error(this, "未知错误..请重启应用");
+        }
+
+    }
+
+    @Override
+    protected void initEvent() {
+
+        //不弹出输入法
+        if (title != null) {
+            mEtTitle.setSelection(title.length());
+        }
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
+
+        mIbBack.setOnClickListener(this);
+        mIbDelete.setOnClickListener(this);
+        mIbPhoto.setOnClickListener(this);
+        mIbSave.setOnClickListener(this);
+
+        mIvPhoto.setOnClickListener(this);
+        mRgType.setOnCheckedChangeListener(this);
+        mLLDate.setOnClickListener(this);
+        mDatePicker.setListener(this);
+
+        mSwitchTop.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                top = isChecked;
+            }
+        });
+    }
+
+    private void getCurDate() {
+        int[] ymd = DateUtils.getYMD();
+        initYMD(ymd);
+    }
+
+    //初始化年月日,并在TextView中显示
+    private void initYMD(int[] ymd) {
+        eventYear = ymd[0];
+        eventMonth = ymd[1];
+        eventDay = ymd[2];
+        date = new Date();
+        time = eventYear + "-" + (eventMonth + 1) + "-" + eventDay;//month准确显示为1-12月
+        mTvTime.setText(time);
+    }
+
+    /**
+     * @return 返回一个获取指定image uri的信使
+     */
+    private static Intent newIntent() {
+        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
+        return intent;
+    }
+
+    private void selectPhoto() {
+        if (ContextCompat.checkSelfPermission(EventDetailActivity.this,
+                Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            //申请权限
+            ActivityCompat.requestPermissions(EventDetailActivity.this,
+                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_CODE_WRITE_PERMISSIONS);
+        } else {
+            startActivityForResult(EventDetailActivity.newIntent(), REQUEST_CODE_PICK_PHOTO);
         }
     }
 
-    private void saveEventDataToSP() {
-        SharedPreferencesUtils.saveStringToSP(getApplicationContext(), SharedPreferencesUtils.KEY_EVENTS, new Gson().toJson(mEvents));
-        finish();
+    private void showDateDialog() {
+        mDatePicker.show(getSupportFragmentManager(), "dialog");
     }
 
-    private boolean checkEventIsEmpty() {
-        if (eventTitle.equals("") || eventTime.equals("") || eventType == 0) {
+    private void deleteEvent() {
+        if (hash != -1) {
+            LitePal.delete(Event.class, hash);
+        }
+        exit();
+    }
+
+    private void exit() {
+        finish();
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+    }
+
+    private void save() {
+        //获取标题
+        title = mEtTitle.getText().toString();
+
+        if (!isEventEmpty()) {
+            //若此事件顶置,则将上次的顶置事件取消顶置
+            resetTopEvent();
+
+            switch (action) {
+                case EVENT_ACTION_ADD:
+                    saveEventAdd();
+
+                    break;
+
+                case EVENT_ACTION_MODIFY:
+                    saveEventModify();
+
+                    break;
+
+                default:
+                    break;
+            }
+            exit();
+        }
+    }
+
+    private void saveEventModify() {
+        Event event = new Event();
+        event.setPath(path);
+        event.setType(type);
+        event.setTitle(title);
+        event.setTop(top);
+        if (dateChanged) {
+            event.setDate(date);
+        }
+        event.updateAll("hash = ?", String.valueOf(hash));
+    }
+
+    private void saveEventAdd() {
+        Event event = new Event();
+        event.setPath(path);
+        event.setType(type);
+        event.setTitle(title);
+        event.setTop(top);
+        event.setDate(date);
+        event.setHash(System.currentTimeMillis());
+        event.save();
+    }
+
+    private void resetTopEvent() {
+        if (top) {
+            if (lastHash != -1 && lastHash != hash) {
+                Event e = new Event();
+                e.setToDefault("top");
+                e.updateAll();
+            }
+        }
+    }
+
+    private boolean isEventEmpty() {
+        //判断标题,类型,时间是否为空
+        if (title.isEmpty() || type == 0) {
             ToastUtils.error(this, "请检查下是否填写完整呢!(事件,类型和日期都不能空白噢)");
             return true;
         }
@@ -320,18 +310,83 @@ public class EventDetailActivity extends AppCompatActivity implements View.OnCli
     }
 
     @Override
+    public void onDateSet(int year, int month, int dayOfMonth) {
+        dateChanged = true;
+        //更新日期
+        eventYear = year;
+        eventMonth = month;
+        eventDay = dayOfMonth;
+        //在TextView中显示
+
+        Calendar c = Calendar.getInstance();
+        c.set(year, month, dayOfMonth);
+        date = c.getTime();
+        time = eventYear + "-" + (eventMonth + 1) + "-" + eventDay;
+        mTvTime.setText(time);
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+
+            case R.id.ib_back:
+                exit();
+                break;
+
+            case R.id.ib_delete:
+                deleteEvent();
+                break;
+
+            case R.id.ib_photo:
+                selectPhoto();
+                break;
+
+            case R.id.iv_photo:
+                selectPhoto();
+                break;
+
+            case R.id.ib_save:
+                save();
+                break;
+
+            case R.id.ll_date:
+                showDateDialog();
+                break;
+
+            default:
+                break;
+        }
+
+    }
+
+    @Override
     public void onCheckedChanged(RadioGroup group, int checkedId) {
 
         switch (checkedId) {
-
             case R.id.rb_anniversary:
-                eventType = TYPE_ANNIVERSARY;
+                type = Constant.EVENT_TYPE_ANNIVERSARY;
                 break;
             case R.id.rb_birthday:
-                eventType = TYPE_BIRTHDAY;
+                type = Constant.EVENT_TYPE_BIRTHDAY;
                 break;
             case R.id.rb_countdown:
-                eventType = TYPE_COUNTDOWN;
+                type = Constant.EVENT_TYPE_COUNTDOWN;
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case REQUEST_CODE_WRITE_PERMISSIONS:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    startActivityForResult(EventDetailActivity.newIntent(), REQUEST_CODE_PICK_PHOTO);
+                } else {
+                    ToastUtils.error(this, "您取消了获权,无法选取图片");
+                }
                 break;
 
             default:
@@ -343,18 +398,26 @@ public class EventDetailActivity extends AppCompatActivity implements View.OnCli
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_CODE_PICK_PHOTO)
             if (data != null) {
-                eventPhotoUri = data.getDataString();
-                Glide.with(this).load(eventPhotoUri).into(mIvEventPic);
+                String path = null;
+                Uri uri = data.getData();
+                if (uri != null) {
+                    Cursor cursor = getContentResolver().query(data.getData(), null, null, null, null);
+                    if (cursor != null) {
+                        if (cursor.moveToFirst()) {
+                            path = cursor.getString(cursor.getColumnIndex(MediaStore.Images.Media.DATA));
+                        }
+                        cursor.close();
+                    }
+
+                    this.path = path;
+                    Glide.with(this).load(this.path).into(mIvPhoto);
+
+                } else {
+
+                    ToastUtils.error(this, "获取图片出错");
+                }
             }
     }
 
-    @Override
-    public void onDateSet(int year, int month, int dayOfMonth) {
-        eventYear = year;
-        eventMonth = month + 1;
-        eventDay = dayOfMonth;
-        LogUtils.i("month", eventMonth + "");
-        eventTime = eventYear + "-" + eventMonth + "-" + eventDay;
-        mTvEventDate.setText(eventTime);
-    }
+
 }
